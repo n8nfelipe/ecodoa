@@ -1,0 +1,136 @@
+// EcoDoa - Prisma Schema
+// Plataforma de Descarte Consciente e Doação P2P
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========== ENUMS ==========
+
+enum Role {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+enum ListingType {
+  DONATION
+  ECOPOINT
+}
+
+enum ListingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+enum ReportStatus {
+  OPEN
+  RESOLVED
+}
+
+// ========== MODELOS ==========
+
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  passwordHash String?
+  googleId     String?   @unique
+  phone        String?
+  role         Role      @default(USER)
+  avatarUrl    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  listings      Listing[]
+  reviewsGiven  Review[]  @relation("ReviewsGiven")
+  reviewsRecv   Review[]  @relation("ReviewsReceived")
+  reports       Report[]
+
+  @@map("users")
+}
+
+model Category {
+  id       String      @id @default(uuid())
+  name     String
+  type     ListingType
+  icon     String
+  listings Listing[]
+
+  @@unique([name, type])
+  @@map("categories")
+}
+
+model Listing {
+  id          String        @id @default(uuid())
+  title       String
+  description String
+  type        ListingType   @default(DONATION)
+  status      ListingStatus @default(PENDING)
+  latitude    Float
+  longitude   Float
+  address     String
+  city        String
+  state       String
+
+  userId     String
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   Category      @relation(fields: [categoryId], references: [id])
+
+  images   ListingImage[]
+  reports  Report[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([latitude, longitude])
+  @@index([status])
+  @@index([categoryId])
+  @@map("listings")
+}
+
+model ListingImage {
+  id        String   @id @default(uuid())
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  url       String
+
+  @@map("listing_images")
+}
+
+model Review {
+  id           String   @id @default(uuid())
+  rating       Int
+  comment      String?
+  reviewerId   String
+  reviewer     User     @relation("ReviewsGiven", fields: [reviewerId], references: [id])
+  targetUserId String
+  targetUser   User     @relation("ReviewsReceived", fields: [targetUserId], references: [id])
+  createdAt    DateTime @default(now())
+
+  @@index([targetUserId])
+  @@map("reviews")
+}
+
+model Report {
+  id         String       @id @default(uuid())
+  reason     String
+  status     ReportStatus @default(OPEN)
+  reporterId String
+  reporter   User         @relation(fields: [reporterId], references: [id])
+  listingId  String
+  listing    Listing      @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt  DateTime     @default(now())
+
+  @@index([status])
+  @@map("reports")
+}
