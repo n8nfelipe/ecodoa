@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import api from "../services/api";
 import type { Listing, Category } from "../types";
 import MapView from "../components/MapView";
+import { geocodeAddress } from "../services/geocoding";
 
 const DEFAULT_CENTER: [number, number] = [-23.5505, -46.6333];
 
@@ -48,6 +49,8 @@ export default function Home() {
   const [center, setCenter] = useState<[number, number]>(DEFAULT_CENTER);
   const [loading, setLoading] = useState(true);
   const [geoError, setGeoError] = useState("");
+  const [addressQuery, setAddressQuery] = useState("");
+  const [searchingAddress, setSearchingAddress] = useState(false);
 
   const loadListings = useCallback(async () => {
     setLoading(true);
@@ -89,10 +92,31 @@ export default function Home() {
     );
   };
 
+  const searchAddress = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!addressQuery.trim()) return;
+
+    setSearchingAddress(true);
+    setGeoError("");
+    try {
+      const location = await geocodeAddress(addressQuery.trim());
+      setCenter([location.latitude, location.longitude]);
+    } catch (err: any) {
+      setGeoError(
+        err.response?.data?.error || "Não foi possível localizar o endereço."
+      );
+    } finally {
+      setSearchingAddress(false);
+    }
+  };
+
   const clearFilters = () => {
     setType("");
     setCategoryId("");
     setRadiusKm(20);
+    setAddressQuery("");
+    setCenter(DEFAULT_CENTER);
+    setGeoError("");
   };
 
   const count = listings.length;
@@ -110,6 +134,24 @@ export default function Home() {
       </header>
 
       <div className="sticky top-14 z-20 flex flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-white p-2 shadow-sm">
+        <form onSubmit={searchAddress} className="flex min-w-full gap-2 sm:min-w-72 sm:flex-1">
+          <input
+            type="search"
+            value={addressQuery}
+            onChange={(event) => setAddressQuery(event.target.value)}
+            className="field min-w-0 flex-1"
+            placeholder="Digite rua, bairro ou cidade"
+            aria-label="Endereço para buscar"
+          />
+          <button
+            type="submit"
+            disabled={searchingAddress || !addressQuery.trim()}
+            className="btn-primary"
+          >
+            {searchingAddress ? "Buscando..." : "Buscar"}
+          </button>
+        </form>
+
         <select
           value={type}
           onChange={(e) => setType(e.target.value as typeof type)}

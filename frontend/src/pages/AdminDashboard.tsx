@@ -15,14 +15,20 @@ interface Report {
 export default function AdminDashboard() {
   const [pending, setPending] = useState<Listing[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
+  const [error, setError] = useState("");
 
   const load = async () => {
-    const [p, r] = await Promise.all([
-      api.get("/admin/listings/pending"),
-      api.get("/admin/reports"),
-    ]);
-    setPending(p.data);
-    setReports(r.data);
+    setError("");
+    try {
+      const [p, r] = await Promise.all([
+        api.get("/admin/listings/pending"),
+        api.get("/admin/reports"),
+      ]);
+      setPending(p.data);
+      setReports(r.data);
+    } catch (err: any) {
+      setError(err.response?.data?.error || "Falha ao carregar o painel.");
+    }
   };
 
   useEffect(() => {
@@ -44,6 +50,15 @@ export default function AdminDashboard() {
       <h1 className="text-2xl font-bold tracking-tight text-gray-900">
         Painel de Moderação
       </h1>
+
+      {error && (
+        <p
+          role="alert"
+          className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+        >
+          {error}
+        </p>
+      )}
 
       <section>
         <h2 className="mb-4 text-base font-semibold text-gray-900">

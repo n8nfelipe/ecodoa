@@ -28,6 +28,7 @@ interface AuthContextData {
     phone?: string
   ) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
@@ -36,21 +37,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const refreshUser = useCallback(async () => {
     const token = localStorage.getItem("token");
     if (!token) {
-      setLoading(false);
+      setUser(null);
       return;
     }
-    api
-      .get("/auth/me")
-      .then((res) => setUser(res.data.user))
-      .catch(() => {
-        localStorage.removeItem("token");
-        setUser(null);
-      })
-      .finally(() => setLoading(false));
+
+    try {
+      const response = await api.get("/auth/me");
+      setUser(response.data.user);
+    } catch {
+      localStorage.removeItem("token");
+      setUser(null);
+    }
   }, []);
+
+  useEffect(() => {
+    void refreshUser().finally(() => setLoading(false));
+
+    const refreshOnFocus = () => void refreshUser();
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") void refreshUser();
+    };
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [refreshUser]);
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await api.post("/auth/login", { email, password });
@@ -79,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, register, logout }}
+      value={{ user, loading, login, register, logout, refreshUser }}
     >
       {children}
     </AuthContext.Provider>

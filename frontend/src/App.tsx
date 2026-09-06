@@ -8,6 +8,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import AdminDashboard from "./pages/AdminDashboard";
+import UserManagement from "./pages/UserManagement";
 
 function Loading() {
   return (
@@ -30,6 +31,13 @@ function RequireAdmin({ children }: { children: JSX.Element }) {
   if (loading) return <Loading />;
   if (!user || (user.role !== "MODERATOR" && user.role !== "ADMIN"))
     return <Navigate to="/" replace />;
+  return children;
+}
+
+function RequireAdministrator({ children }: { children: JSX.Element }) {
+  const { user, loading } = useAuth();
+  if (loading) return <Loading />;
+  if (!user || user.role !== "ADMIN") return <Navigate to="/" replace />;
   return children;
 }
 
@@ -65,6 +73,14 @@ export default function App() {
               <RequireAdmin>
                 <AdminDashboard />
               </RequireAdmin>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <RequireAdministrator>
+                <UserManagement />
+              </RequireAdministrator>
             }
           />
         </Routes>

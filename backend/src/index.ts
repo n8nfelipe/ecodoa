@@ -10,6 +10,7 @@ import reviewRoutes from "./routes/reviews";
 import reportRoutes from "./routes/reports";
 import adminRoutes from "./routes/admin";
 import uploadRoutes from "./routes/upload";
+import geocodingRoutes from "./routes/geocoding";
 
 dotenv.config();
 
@@ -33,6 +34,7 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/geocoding", geocodingRoutes);
 
 app.use(
   (

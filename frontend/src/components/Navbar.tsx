@@ -39,6 +39,11 @@ export default function Navbar() {
               Moderação
             </Link>
           )}
+          {user?.role === "ADMIN" && (
+            <Link to="/admin/users" className="rounded-md px-2.5 py-1.5 transition hover:bg-white/10">
+              Usuários
+            </Link>
+          )}
           {user ? (
             <div className="flex items-center gap-2">
               <Link to="/profile" className="rounded-md px-2.5 py-1.5 transition hover:bg-white/10">

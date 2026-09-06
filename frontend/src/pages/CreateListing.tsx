@@ -1,8 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import api from "../services/api";
 import type { Category } from "../types";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  useMapEvents,
+  useMap,
+} from "react-leaflet";
+import type { Map } from "leaflet";
 import { fetchUfs, fetchCities, type IbgeUf, type IbgeCity } from "../services/ibge";
+import { geocodeAddress } from "../services/geocoding";
 
 function LocationPicker({
   onPick,
@@ -14,6 +22,18 @@ function LocationPicker({
       onPick(e.latlng.lat, e.latlng.lng);
     },
   });
+  return null;
+}
+
+function MapController({
+  onReady,
+}: {
+  onReady: (map: Map) => void;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    onReady(map);
+  }, [map, onReady]);
   return null;
 }
 
@@ -37,6 +57,11 @@ export default function CreateListing() {
   const [cities, setCities] = useState<IbgeCity[]>([]);
   const [cityLoading, setCityLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const mapRef = useRef<Map | null>(null);
+  const [geoError, setGeoError] = useState("");
+  const [locationConfirmed, setLocationConfirmed] = useState(false);
+  const [locatingAddress, setLocatingAddress] = useState(false);
+  const [locationLabel, setLocationLabel] = useState("");
 
   useEffect(() => {
     api.get("/listings/categories").then((res) => setCategories(res.data));
@@ -48,6 +73,8 @@ export default function CreateListing() {
   const handleUfChange = (sigla: string) => {
     setState(sigla);
     setCity("");
+    setLocationConfirmed(false);
+    setLocationLabel("");
     setCities([]);
     if (!sigla) return;
     setCityLoading(true);
@@ -70,6 +97,65 @@ export default function CreateListing() {
     }
   };
 
+  const locateMe = () => {
+    if (!navigator.geolocation) {
+      setGeoError("Seu navegador não suporta geolocalização.");
+      return;
+    }
+    setGeoError("");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setLat(latitude);
+        setLng(longitude);
+        setLocationConfirmed(true);
+        setLocationLabel("Localização atual selecionada");
+        mapRef.current?.flyTo([latitude, longitude], 14);
+      },
+      () =>
+        setGeoError(
+          "Não foi possível obter sua localização. Verifique as permissões do navegador."
+        )
+    );
+  };
+
+  const locateAddress = async () => {
+    if (!address.trim() || !city || !state) {
+      setGeoError("Preencha endereço, cidade e UF para localizar no mapa.");
+      return null;
+    }
+
+    setLocatingAddress(true);
+    setGeoError("");
+    try {
+      // Complementos residenciais como "casa 25" frequentemente não existem na
+      // base cartográfica. Preservamos rua/quadra e bairro para obter o ponto útil
+      // mais próximo, que ainda pode ser refinado manualmente no mapa.
+      const searchableAddress = address
+        .replace(/\b(?:casa|apartamento|apto|ap\.?|bloco)\s*[\w-]+\b/gi, "")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+      const location = await geocodeAddress(
+        `${searchableAddress}, ${city}, ${state}, Brasil`
+      );
+      setLat(location.latitude);
+      setLng(location.longitude);
+      setLocationConfirmed(true);
+      setLocationLabel(location.displayName);
+      mapRef.current?.flyTo([location.latitude, location.longitude], 16);
+      return location;
+    } catch (err: any) {
+      setLocationConfirmed(false);
+      setLocationLabel("");
+      setGeoError(
+        err.response?.data?.error || "Não foi possível localizar o endereço."
+      );
+      return null;
+    } finally {
+      setLocatingAddress(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -79,12 +165,21 @@ export default function CreateListing() {
     }
     setSubmitting(true);
     try {
+      let listingLatitude = lat;
+      let listingLongitude = lng;
+      if (!locationConfirmed) {
+        const location = await locateAddress();
+        if (!location) return;
+        listingLatitude = location.latitude;
+        listingLongitude = location.longitude;
+      }
+
       await api.post("/listings", {
         title,
         description,
         categoryId,
-        latitude: lat,
-        longitude: lng,
+        latitude: listingLatitude,
+        longitude: listingLongitude,
         address,
         city,
         state,
@@ -186,7 +281,11 @@ export default function CreateListing() {
             </label>
             <input
               value={address}
-              onChange={(e) => setAddress(e.target.value)}
+              onChange={(e) => {
+                setAddress(e.target.value);
+                setLocationConfirmed(false);
+                setLocationLabel("");
+              }}
               className="field w-full"
               required
             />
@@ -215,7 +314,11 @@ export default function CreateListing() {
             </label>
             <select
               value={city}
-              onChange={(e) => setCity(e.target.value)}
+              onChange={(e) => {
+                setCity(e.target.value);
+                setLocationConfirmed(false);
+                setLocationLabel("");
+              }}
               className="field w-full"
               disabled={!state}
               required
@@ -237,9 +340,19 @@ export default function CreateListing() {
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">
-            Localização (clique no mapa) *
-          </label>
+          <div className="mb-1.5 flex items-center justify-between">
+            <label className="block text-sm font-medium text-gray-700">
+              Localização (clique no mapa) *
+            </label>
+            <button
+              type="button"
+              onClick={() => void locateAddress()}
+              disabled={locatingAddress}
+              className="text-sm font-semibold text-brand-700 hover:text-brand-800"
+            >
+              {locatingAddress ? "Localizando..." : "🔎 Localizar endereço"}
+            </button>
+          </div>
           <MapContainer
             center={DEFAULT_CENTER}
             zoom={12}
@@ -254,12 +367,37 @@ export default function CreateListing() {
               onPick={(latitude, longitude) => {
                 setLat(latitude);
                 setLng(longitude);
+                setLocationConfirmed(true);
+                setLocationLabel("Ponto ajustado manualmente no mapa");
+                setGeoError("");
+              }}
+            />
+            <MapController
+              onReady={(map) => {
+                mapRef.current = map;
               }}
             />
           </MapContainer>
           <p className="mt-1.5 text-xs text-gray-500">
-            Coordenadas: {lat.toFixed(5)}, {lng.toFixed(5)}
+            {locationConfirmed
+              ? `Localização confirmada: ${locationLabel} (${lat.toFixed(5)}, ${lng.toFixed(5)})`
+              : "O endereço será localizado automaticamente ao publicar. Você também pode ajustar o ponto clicando no mapa."}
           </p>
+          <button
+            type="button"
+            onClick={locateMe}
+            className="mt-2 text-sm font-semibold text-brand-700 hover:text-brand-800"
+          >
+            📍 Usar minha localização atual
+          </button>
+          {geoError && (
+            <p
+              role="alert"
+              className="mt-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
+            >
+              {geoError}
+            </p>
+          )}
         </div>
 
         <div>
