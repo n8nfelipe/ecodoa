@@ -209,11 +209,17 @@ export default function Home() {
         </p>
       )}
 
-      <MapView
-        listings={listings}
-        center={center}
-        className="h-64 w-full overflow-hidden rounded-xl border border-gray-200 shadow-sm sm:h-72 lg:h-80"
-      />
+      <div className="relative">
+        <MapView
+          listings={listings}
+          center={center}
+          radiusKm={radiusKm}
+          className="h-64 w-full overflow-hidden rounded-xl border border-gray-200 shadow-sm sm:h-72 lg:h-80"
+        />
+        <span className="absolute right-3 top-3 z-[500] rounded-lg border border-brand-200 bg-white/95 px-3 py-1.5 text-xs font-semibold text-brand-800 shadow-sm">
+          Área de busca: {radiusKm} km
+        </span>
+      </div>
 
       <section aria-label="Resultados" className="space-y-4">
         <div className="flex items-center justify-between gap-3">

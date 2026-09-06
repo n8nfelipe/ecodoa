@@ -1,5 +1,12 @@
 import { useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import {
+  Circle,
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  useMap,
+} from "react-leaflet";
 import L from "leaflet";
 import { Link } from "react-router-dom";
 import type { Listing } from "../types";
@@ -22,15 +29,27 @@ interface MapViewProps {
   listings: Listing[];
   center?: [number, number];
   zoom?: number;
+  radiusKm?: number;
   onPickLocation?: (lat: number, lng: number) => void;
   className?: string;
 }
 
-function ViewSync({ center }: { center: [number, number] }) {
+function ViewSync({
+  center,
+  radiusKm,
+}: {
+  center: [number, number];
+  radiusKm?: number;
+}) {
   const map = useMap();
   useEffect(() => {
+    if (radiusKm) {
+      const bounds = L.latLng(center).toBounds(radiusKm * 2_000);
+      map.fitBounds(bounds, { animate: true, maxZoom: 15, padding: [20, 20] });
+      return;
+    }
     map.setView(center, map.getZoom(), { animate: true });
-  }, [center, map]);
+  }, [center, map, radiusKm]);
   return null;
 }
 
@@ -38,6 +57,7 @@ export default function MapView({
   listings,
   center = [-23.5505, -46.6333],
   zoom = 12,
+  radiusKm,
   onPickLocation,
   className = "h-[420px] w-full rounded-xl border border-gray-200",
 }: MapViewProps) {
@@ -52,7 +72,20 @@ export default function MapView({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <ViewSync center={center} />
+      <ViewSync center={center} radiusKm={radiusKm} />
+      {radiusKm && (
+        <Circle
+          center={center}
+          radius={radiusKm * 1_000}
+          pathOptions={{
+            color: "#15803d",
+            dashArray: "6 6",
+            fillColor: "#22c55e",
+            fillOpacity: 0.12,
+            weight: 2,
+          }}
+        />
+      )}
       {listings.map((listing) => (
         <Marker
           key={listing.id}
