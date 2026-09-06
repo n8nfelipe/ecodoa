@@ -54,8 +54,23 @@ model User {
   reviewsGiven  Review[]  @relation("ReviewsGiven")
   reviewsRecv   Review[]  @relation("ReviewsReceived")
   reports       Report[]
+  passwordResetTokens PasswordResetToken[]
 
   @@map("users")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([userId])
+  @@map("password_reset_tokens")
 }
 
 model Category {

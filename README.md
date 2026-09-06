@@ -6,6 +6,7 @@ descarte ecológico (lixo eletrônico, pilhas, óleo, lâmpadas).
 ## Funcionalidades
 
 - Cadastro e autenticação com e-mail e senha
+- Recuperação de senha por link temporário e de uso único
 - Publicação de doações e ecopontos com imagens
 - Busca por endereço, categoria, tipo e raio de distância
 - Mapa interativo com OpenStreetMap
@@ -121,6 +122,15 @@ principais configurações são:
 | `UPLOAD_DIR` | Diretório de armazenamento das imagens |
 | `MAX_FILE_SIZE_MB` | Tamanho máximo permitido por arquivo |
 | `GEOCODING_BASE_URL` | Servidor Nominatim; opcional |
+| `PASSWORD_RESET_TOKEN_MINUTES` | Validade do link de recuperação |
+| `PASSWORD_RESET_EXPOSE_LINK` | Exibe o link na resposta; somente desenvolvimento |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE` | Conexão com o servidor SMTP |
+| `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | Credenciais e remetente dos e-mails |
+
+Para enviar pelo Gmail configurado no projeto, gere uma **senha de app** na
+conta Google `iafelipemoura@gmail.com` e informe-a somente em `SMTP_PASS` no
+arquivo local `backend/.env` (ou no `.env` da raiz ao executar via Docker
+Compose). Não use a senha normal da conta e não versione esse segredo.
 
 Em produção, altere obrigatoriamente `JWT_SECRET` e as credenciais padrão do
 banco presentes no `docker-compose.yml`.
@@ -138,6 +148,8 @@ banco presentes no `docker-compose.yml`.
 | :--- | :--- | :--- |
 | POST | `/api/auth/register` | Cadastro |
 | POST | `/api/auth/login` | Login (retorna JWT) |
+| POST | `/api/auth/forgot-password` | Solicita a recuperação de senha |
+| POST | `/api/auth/reset-password` | Redefine a senha com token válido |
 | GET | `/api/auth/me` | Perfil e histórico |
 | GET | `/api/listings` | Lista com filtros (`lat`, `lng`, `radiusKm`, `type`, `categoryId`) |
 | GET | `/api/geocoding/search` | Converte um endereço (`q`) em latitude e longitude |

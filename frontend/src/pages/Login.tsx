@@ -50,9 +50,12 @@ export default function Login() {
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">
-            Senha
-          </label>
+          <div className="mb-1.5 flex items-center justify-between gap-3">
+            <label className="block text-sm font-medium text-gray-700">Senha</label>
+            <Link to="/forgot-password" className="text-xs font-semibold text-brand-600 hover:text-brand-700">
+              Esqueci minha senha
+            </Link>
+          </div>
           <input
             type="password"
             value={password}
