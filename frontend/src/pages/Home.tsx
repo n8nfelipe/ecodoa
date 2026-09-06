@@ -134,7 +134,10 @@ export default function Home() {
       </header>
 
       <div className="sticky top-14 z-20 flex flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-white p-2 shadow-sm">
-        <form onSubmit={searchAddress} className="flex min-w-full gap-2 sm:min-w-72 sm:flex-1">
+        <form
+          onSubmit={searchAddress}
+          className="flex min-w-full gap-2 sm:min-w-72 sm:flex-1"
+        >
           <input
             type="search"
             value={addressQuery}
@@ -195,9 +198,6 @@ export default function Home() {
           <span aria-hidden>📍</span> Minha localização
         </button>
 
-        <span className="ml-auto hidden text-sm font-medium text-gray-500 sm:block">
-          {count} {count === 1 ? "anúncio" : "anúncios"}
-        </span>
       </div>
 
       {geoError && (
@@ -209,58 +209,61 @@ export default function Home() {
         </p>
       )}
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(340px,380px)] lg:items-start">
-        <div className="lg:sticky lg:top-[118px]">
-          <MapView
-            listings={listings}
-            center={center}
-            className="h-[52vh] min-h-[420px] w-full overflow-hidden rounded-xl border border-gray-200 shadow-sm lg:h-[calc(100vh-150px)]"
-          />
-        </div>
+      <MapView
+        listings={listings}
+        center={center}
+        className="h-64 w-full overflow-hidden rounded-xl border border-gray-200 shadow-sm sm:h-72 lg:h-80"
+      />
 
-        <section aria-label="Resultados">
-          <h2 className="sr-only">Resultados</h2>
-          {loading ? (
-            <ul className="space-y-3">
-              {[0, 1, 2, 3].map((i) => (
-                <li
-                  key={i}
-                  className="flex animate-pulse gap-3 rounded-xl border border-gray-200 bg-white p-3"
-                >
-                  <div className="h-20 w-20 shrink-0 rounded-lg bg-gray-200" />
-                  <div className="flex-1 space-y-2 py-1">
-                    <div className="h-3 w-2/3 rounded bg-gray-200" />
-                    <div className="h-3 w-1/3 rounded bg-gray-200" />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : count === 0 ? (
-            <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center">
-              <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-brand-50 text-2xl">
-                🗺️
-              </div>
-              <h3 className="font-semibold text-gray-900">
-                Nenhum anúncio por aqui
-              </h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Tente ampliar o raio de busca ou mudar os filtros.
-              </p>
-              <button onClick={clearFilters} className="btn-primary mt-4">
-                Limpar filtros
-              </button>
+      <section aria-label="Resultados" className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-base font-semibold text-gray-900">
+            Publicações encontradas
+          </h2>
+          <span className="text-sm font-medium text-gray-500">
+            {count} {count === 1 ? "anúncio" : "anúncios"}
+          </span>
+        </div>
+        {loading ? (
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <li
+                key={i}
+                className="flex animate-pulse gap-3 rounded-xl border border-gray-200 bg-white p-3"
+              >
+                <div className="h-20 w-20 shrink-0 rounded-lg bg-gray-200" />
+                <div className="flex-1 space-y-2 py-1">
+                  <div className="h-3 w-2/3 rounded bg-gray-200" />
+                  <div className="h-3 w-1/3 rounded bg-gray-200" />
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : count === 0 ? (
+          <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center">
+            <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-brand-50 text-2xl">
+              🗺️
             </div>
-          ) : (
-            <ul className="space-y-3">
-              {listings.map((listing) => (
-                <li key={listing.id}>
-                  <ListingRow listing={listing} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
+            <h3 className="font-semibold text-gray-900">
+              Nenhum anúncio por aqui
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Tente ampliar o raio de busca ou mudar os filtros.
+            </p>
+            <button onClick={clearFilters} className="btn-primary mt-4">
+              Limpar filtros
+            </button>
+          </div>
+        ) : (
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {listings.map((listing) => (
+              <li key={listing.id}>
+                <ListingRow listing={listing} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }
