@@ -1,17 +1,14 @@
-name: CI e Release
+name: CI
 
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [main]
-  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -62,26 +59,3 @@ jobs:
       - name: Verificar tipos e gerar build
         working-directory: frontend
         run: npm run build
-
-  release:
-    name: Gerar versão e tag
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [backend, frontend]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      issues: write
-      pull-requests: write
-    steps:
-      - name: Baixar histórico completo
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Gerar tag e GitHub Release
-        uses: cycjimmy/semantic-release-action@v6
-        with:
-          semantic_version: 25.0.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
